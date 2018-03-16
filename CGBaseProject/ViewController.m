@@ -10,25 +10,68 @@
 
 
 #import "SwitchHeader.h"
+#import "FileHandleTool.h"
+#import <SVProgressHUD.h>
+
 @interface ViewController ()
+
 @property (weak, nonatomic) IBOutlet UIImageView *resultImage;
 
+///读取到的数据
+@property (strong, nonatomic) NSMutableData *readData;
+
+// 句柄工具
+@property (strong, nonatomic) FileHandleTool *fileTool;
 @end
 
 @implementation ViewController
 
+-(FileHandleTool *)fileTool{
+    if (!_fileTool) {
+        //读取本地图片
+        NSString  *path=  [[NSBundle mainBundle] pathForResource:@"ceshi" ofType:@"jpeg"];
+        self.fileTool = [[FileHandleTool alloc]init];
+        [self.fileTool creatReadLocalFileHandelName:path];
+    }
+    return _fileTool;
+}
+
+-(NSMutableData *)readData{
+    if (!_readData) {
+        _readData = [NSMutableData data];
+        
+    }
+    return _readData;
+}
+
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view, typically from a nib.
+    [SVProgressHUD setDefaultMaskType:SVProgressHUDMaskTypeBlack];
+    
     
     
 }
+- (IBAction)readLocalData:(id)sender {
+    
+    [self readLocalData];
+}
+
+-(void)readLocalData{
+    
+    NSData* data = [self.fileTool readData];
+    [self.readData appendData:data];
+    if ((self.fileTool.totalPackage - self.fileTool.currentPackage)!=0) {//不是最后一次
+        
+        [self performSelector:@selector(readLocalData) withObject:nil afterDelay:0.5];
+    }
+}
+
 #pragma mark 拼接数据第一种
 - (IBAction)firstBtnClick:(UIButton *)sender {
-    //前期准备--获取一张图片的大小
-    NSString  *path=  [[NSBundle mainBundle] pathForResource:@"ceshi" ofType:@"jpeg"];
-    NSData* content = [NSData dataWithContentsOfFile:path];
-    int value = (int)content.length;
+    
+    
+    int value = (int)self.readData.length;
     
     //开始转换为4个字节
     Byte byteData[4] = {};
@@ -50,7 +93,7 @@
     //拼接content
     NSMutableData *m_data = [[NSMutableData alloc] init];
     [m_data appendData:temphead];
-    [m_data appendData:content];
+    [m_data appendData:self.readData];
     
     [self readData:m_data];
     
@@ -63,10 +106,8 @@
 }
 #pragma mark 拼接数据第二种
 - (IBAction)secondBtnClick:(UIButton *)sender {
-    //前期准备
-    NSString  *path=  [[NSBundle mainBundle] pathForResource:@"ceshi" ofType:@"jpeg"];
-    NSData* content = [NSData dataWithContentsOfFile:path];
-    int value = (int)content.length;
+    
+    int value = (int)self.readData.length;
     
     //将长度转为十进制string
     NSString* decimalString = [NSString stringWithFormat:@"%d",value];
@@ -80,7 +121,7 @@
     //拼接content
     NSMutableData *m_data = [[NSMutableData alloc] init];
     [m_data appendData:temphead];
-    [m_data appendData:content];
+    [m_data appendData:self.readData];
     
     [self readData:m_data];
     
@@ -117,7 +158,8 @@
 - (IBAction)clearImage:(UIButton *)sender {
     
     [self.resultImage setImage:nil];
-    
+    self.fileTool = nil;
+    self.readData = nil;
 }
 
 - (void)didReceiveMemoryWarning {
